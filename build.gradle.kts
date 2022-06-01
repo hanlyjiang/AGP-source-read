@@ -16,7 +16,12 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
     implementation(gradleApi())
-    implementation("com.android.tools.build:gradle:7.2.0")
+    implementation("com.android.tools.build:gradle:7.0.0")
+}
+buildscript {
+    dependencies {
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.20")
+    }
 }
 
 tasks.test {

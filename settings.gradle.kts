@@ -1,5 +1,4 @@
 
-rootProject.name = "agp-source-read"
 
 pluginManagement {
     repositories {
@@ -14,5 +13,13 @@ buildscript {
         maven { setUrl("https://maven.aliyun.com/repository/gradle-plugin") }
         maven { setUrl("https://repo.huaweicloud.com/repository/maven") }
     }
+
+    dependencies {
+        classpath("com.android.tools.build:gradle:7.0.0")
+    }
 }
 
+
+include(":app")
+
+rootProject.name = "agp-source-read"
