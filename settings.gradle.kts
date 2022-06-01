@@ -24,4 +24,4 @@ buildscript {
 include(":app")
 
 rootProject.name = "agp-source-read"
-
+include("agp-test")
