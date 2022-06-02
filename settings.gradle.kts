@@ -3,7 +3,7 @@ pluginManagement {
         maven { setUrl("https://maven.aliyun.com/repository/gradle-plugin") }
         maven { setUrl("https://maven.aliyun.com/repository/google") }
         maven { setUrl("https://repo.huaweicloud.com/repository/maven") }
-        gradlePluginPortal()
+//        gradlePluginPortal()
     }
 }
 
@@ -12,7 +12,7 @@ buildscript {
         maven { setUrl("https://maven.aliyun.com/repository/gradle-plugin") }
         maven { setUrl("https://maven.aliyun.com/repository/google") }
         maven { setUrl("https://repo.huaweicloud.com/repository/maven") }
-        gradlePluginPortal()
+//        gradlePluginPortal()
     }
 
     dependencies {
