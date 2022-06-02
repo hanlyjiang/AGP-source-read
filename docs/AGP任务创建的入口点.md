@@ -93,3 +93,7 @@ public abstract class BasePlugin<
     
 }
 ```
+看起来这个方法像是 AppPlugin 的入口点，但是，当我们查看AppPlugin的实现时，发现这个方法是空的，而AppPlugin插件中的代码也很少，基本上都是override的方法。
+
+所以我们往上看AbstractPlugin，发现其中代码更少，也全部是override的方法，所以所有的主要逻辑都在 BasePlugin 中，所以我们需要回过头来看 BasePlugin。
+
