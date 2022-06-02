@@ -1,7 +1,8 @@
 package com.github.hanlyjiang.app
 
 
-
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import junit.framework.Assert.assertEquals
@@ -22,5 +23,11 @@ class ExampleInstrumentedTest {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         assertEquals("com.github.hanlyjiang.app", appContext.packageName)
+    }
+
+    @Test
+    fun getAppContext() {
+        var applicationContext = ApplicationProvider.getApplicationContext<Context>()
+        assertNotNull(applicationContext)
     }
 }
