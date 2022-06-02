@@ -1,9 +1,11 @@
 plugins {
-    id("java")
-    kotlin("jvm") // version "1.6.20" // 加入classpath 之后，不再需要version
+    // 给 buildSrc 添加 kotlin-dsl 支持
+    `kotlin-dsl`
+    // groovy 支持
+    // id 'groovy-gradle-plugin'id 'groovy-gradle-plugin'
 }
 
-group = "com.github.hanlyjiang"
+group = "com.github.hanlyjiang.gradle"
 version = "1.0.0"
 
 repositories {
@@ -13,15 +15,10 @@ repositories {
 }
 
 dependencies {
+    // 添加gradleApi
     implementation(gradleApi())
+    // 添加 Android Gradle Api
     implementation("com.android.tools.build:gradle:7.0.0")
-
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
-}
-
-tasks.getByName<Test>("test") {
-    useJUnitPlatform()
 }
 
 java {
