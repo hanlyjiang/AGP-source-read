@@ -28,3 +28,5 @@ java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
 }
+
+logger.lifecycle("hasAndroidPlugin: ${pluginManager.hasPlugin("com.android.base")}")

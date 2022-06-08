@@ -97,3 +97,37 @@ public abstract class BasePlugin<
 
 所以我们往上看AbstractPlugin，发现其中代码更少，也全部是override的方法，所以所有的主要逻辑都在 BasePlugin 中，所以我们需要回过头来看 BasePlugin。
 
+- BasePlugin 实现了 Gradle 的 Plugin 接口    
+```java
+    @Override
+    public final void apply(@NonNull Project project) {
+        CrashReporting.runAction(
+                () -> {
+                    basePluginApply(project);
+                    // 都没有实现
+                    pluginSpecificApply(project);
+                    // AndroidBasePlugin 是一个空的插件，用于给其他插件的实现中来判断是否应用了 Android 插件(根据ID：com.android.base判断 )
+                    project.getPluginManager().apply(AndroidBasePlugin.class);
+                });
+    }
+```
+
+## 如何判断是否应用了android 插件？
+```groovy
+logger.lifecycle("hasAndroidPlugin: ${pluginManager.hasPlugin('com.android.base')}")
+```
+
+```kotlin
+logger.lifecycle("hasAndroidPlugin: ${pluginManager.hasPlugin("com.android.base")}")
+```
+
+
+## 如何在别人的基础上开发自己的框架？
+1. Gradle 原先的API是什么样的？
+2. AGP要实现的功能是什么样的？
+
+## AGP 的设计
+1. 为什么需要定义基础插件，基础插件的哪些功能提取出去了？为什么这样设计？
+
+
+
