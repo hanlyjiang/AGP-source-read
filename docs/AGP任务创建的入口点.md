@@ -43,17 +43,21 @@ com.android.lint.properties
 com.android.reporting.properties
 com.android.test.properties
 ```
-我们打开 `com.android.application` 进行查看：
+我们打开 `com.android.application.properties` 及 `android.properties` 进行查看：
 ```properties
 implementation-class=com.android.build.gradle.AppPlugin
 ```
-打开 `com.android.library` 进行查看：
+打开 `com.android.library.properties` 及 `android-library.properties` 进行查看：
 ```properties
 implementation-class=com.android.build.gradle.LibraryPlugin
 ```
 故：
 - application 插件对应到： `com.android.build.gradle.AppPlugin`
 - library 插件对应到： `com.android.build.gradle.LibraryPlugin`
+> 关于android插件id的说明：
+> - application插件对应两个id：`android` 、 `com.android.application`
+> - library插件对应两个id：`android-library` 、 `com.android.library`
+> - 不过 `android` 和 `android-library` 插件id已经过时，我们应该使用新的ID
 
 ## 插件继承结构
 ```shell
@@ -111,6 +115,19 @@ public abstract class BasePlugin<
                 });
     }
 ```
+
+## 初始化流程
+BasePlugin
+- configureProject
+- configureExtension
+- createTasks
+
+### configureProject
+
+### configureExtension
+
+### createTasks
+
 
 ## 如何判断是否应用了android 插件？
 ```groovy
