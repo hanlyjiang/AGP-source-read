@@ -1,3 +1,5 @@
+import groovy.xml.slurpersupport.GPathResult
+
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
@@ -49,3 +51,6 @@ dependencies {
 logger.lifecycle("hasAndroidPlugin: ${pluginManager.hasPlugin('com.android.base')}")
 
 apply from: rootProject.file("test.gradle")
+apply from: project.file("deps-add.gradle")
+
+
