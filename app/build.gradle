@@ -51,6 +51,6 @@ dependencies {
 logger.lifecycle("hasAndroidPlugin: ${pluginManager.hasPlugin('com.android.base')}")
 
 apply from: rootProject.file("test.gradle")
-apply from: project.file("deps-add.gradle")
+apply from: rootProject.file("docs/gradle-sample/deps-add.gradle")
 
 

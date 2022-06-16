@@ -1,10 +1,11 @@
 import groovy.util.slurpersupport.GPathResult
 
+
 // 从 pom 文件中读取依赖
 List<GPathResult> getDependList(String fileName) {
     def file = project.file(fileName)
     if (!file.exists()) {
-        logger.error("File:${fileName} not exists!")
+        logger.error("File ${file.absolutePath} does not exists!")
         return Collections.emptyList()
     }
     def projectNode = new XmlSlurper().parse(file)
@@ -16,7 +17,8 @@ List<GPathResult> getDependList(String fileName) {
         depends.add(item)
     }
     return depends.findAll { item ->
-        item.groupId == "com.test.test"
+        // 通过groupId筛选
+        item.groupId == "com.github.hanlyjiang.pom"
     }
 }
 
