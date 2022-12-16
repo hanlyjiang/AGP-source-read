@@ -1,0 +1,42 @@
+import groovy.util.slurpersupport.GPathResult
+
+
+// 从 pom 文件中读取依赖
+List<GPathResult> getDependList(String fileName) {
+    def file = project.file(fileName)
+    if (!file.exists()) {
+        logger.error("File ${file.absolutePath} does not exists!")
+        return Collections.emptyList()
+    }
+    def projectNode = new XmlSlurper().parse(file)
+    List<GPathResult> depends = new ArrayList<>()
+    // 添加自己
+    depends.add(projectNode)
+    for (final GPathResult item in projectNode.dependencies.dependency) {
+        // 添加自己的依赖
+        depends.add(item)
+    }
+    return depends.findAll { item ->
+        // 通过groupId筛选
+        item.groupId == "com.github.hanlyjiang.pom"
+    }
+}
+
+def pomFile = "test.pom"
+
+dependencies {
+    // 添加依赖
+    getDependList(pomFile).forEach { item ->
+        implementation("${item.groupId}:${item.artifactId}:${item.version}")
+    }
+}
+
+task("parsePom") {
+    group = "custom"
+    doLast {
+        def i = 0
+        getDependList(pomFile).forEach { item ->
+            logger.lifecycle("${++i}.${item.groupId}:${item.artifactId}:${item.version}")
+        }
+    }
+}
