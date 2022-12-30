@@ -11,17 +11,28 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var dataBinding: ActivityMainBinding
 
+    private var count = 1
+    private lateinit var listViewBean: ListViewBean
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         dataBinding =
             DataBindingUtil.setContentView(this, R.layout.activity_main)
-        dataBinding.listVm = listViewBean()
+        listViewBean = listViewBean()
+        dataBinding.listVm = listViewBean
+        dataBinding.fabAdd.setOnClickListener {
+            listViewBean.ymList.add(randomYm(count++))
+        }
     }
 
-    private fun listViewBean():ListViewBean {
+    private fun randomYm(int: Int): Ym {
+        return Ym("$int", "YM ${int}", "YM Desc $int", "", int.toFloat())
+    }
+
+    private fun listViewBean(): ListViewBean {
         return ListViewBean().apply {
-            ymList.add(Ym("1", "YM111", "YM Desc 11111", "", 1.0f))
-            ymList.add(Ym("2", "YM222", "YM Desc 22222", "", 1.0f))
+//            ymList.add(randomYm(count++))
+//            ymList.add(randomYm(count++))
         }
     }
 }

@@ -32,7 +32,9 @@ public class ListBindAdapter {
      */
     @BindingAdapter("android:data")
     public static void setRecyclerViewData(RecyclerView recyclerView, List<Ym> oldData, List<Ym> newData) {
-        Log.d(TAG, "setRecyclerViewData：oldData = " + oldData.size() + "; newData = " + newData.size());
+        Log.d(TAG, "setRecyclerViewData：oldData = "
+                + (oldData == null ? 0 : oldData.size())
+                + "; newData = " + newData.size());
         if (recyclerView.getAdapter() == null) {
             initRecyclerView(recyclerView);
         }

@@ -1,9 +1,8 @@
 package com.github.hanlyjiang.app.vm.main;
 
-import com.github.hanlyjiang.app.model.Ym;
+import androidx.databinding.ObservableArrayList;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.github.hanlyjiang.app.model.Ym;
 
 /**
  * @author jiang.hanghang 2022/12/30 14:20
@@ -11,6 +10,9 @@ import java.util.List;
  */
 public class ListViewBean {
 
-    public List<Ym> ymList = new ArrayList<>();
+    /**
+     * ObservableArrayList 支持被观察数据的添加移除等
+     */
+    public ObservableArrayList<Ym> ymList = new ObservableArrayList<>();
 
 }
