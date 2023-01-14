@@ -3,10 +3,12 @@ package com.github.hanlyjiang.app.recyclerview.sticky.impl1;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.github.hanlyjiang.app.recyclerview.sticky.StickyViewTester;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +18,8 @@ import java.util.List;
  */
 
 public class StickyItemDecoration extends RecyclerView.ItemDecoration {
+
+    public static final String TAG = StickyItemDecoration.class.getSimpleName();
 
     /**
      * 吸附的itemView
@@ -35,12 +39,12 @@ public class StickyItemDecoration extends RecyclerView.ItemDecoration {
     /**
      * 通过它获取到需要吸附view的相关信息
      */
-    private final StickyViewProvider mStickyViewProvider;
+    private final StickyViewTester mStickyViewTester;
 
     /**
      * adapter
      */
-    private RecyclerView.Adapter<RecyclerView.ViewHolder> mAdapter;
+    private RecyclerView.Adapter mAdapter;
 
     /**
      * viewHolder
@@ -67,8 +71,8 @@ public class StickyItemDecoration extends RecyclerView.ItemDecoration {
      */
     private Paint mPaint;
 
-    public StickyItemDecoration(StickyViewProvider stickyViewProvider) {
-        this.mStickyViewProvider = stickyViewProvider;
+    public StickyItemDecoration(StickyViewTester stickyViewTester) {
+        this.mStickyViewTester = stickyViewTester;
         initPaint();
     }
 
@@ -100,9 +104,9 @@ public class StickyItemDecoration extends RecyclerView.ItemDecoration {
             /**
              * 如果是吸附的view
              */
-            if (mStickyViewProvider.isStickyView(view)) {
+            if (mStickyViewTester.isStickyView(view, parent.getChildAdapterPosition(view))) {
                 mCurrentUIFindStickView = true;
-                getStickyViewHolder(parent);
+                getStickyViewHolder(parent, parent.getChildAdapterPosition(view));
                 cacheStickyViewPosition(m);
 
                 if (view.getTop() <= 0) {
@@ -166,7 +170,7 @@ public class StickyItemDecoration extends RecyclerView.ItemDecoration {
         View nextStickyView = null;
         for (int m = 0, size = parent.getChildCount(); m < size; m++) {
             View view = parent.getChildAt(m);
-            if (mStickyViewProvider.isStickyView(view)) {
+            if (mStickyViewTester.isStickyView(view, parent.getChildAdapterPosition(view))) {
                 nextStickyView = view;
                 num++;
             }
@@ -215,12 +219,17 @@ public class StickyItemDecoration extends RecyclerView.ItemDecoration {
      * 得到吸附viewHolder
      *
      * @param recyclerView
+     * @param childAdapterPosition
      */
-    private void getStickyViewHolder(RecyclerView recyclerView) {
+    private void getStickyViewHolder(RecyclerView recyclerView, int childAdapterPosition) {
         if (mAdapter != null) return;
 
         mAdapter = recyclerView.getAdapter();
-        mViewHolder = mAdapter.onCreateViewHolder(recyclerView, mStickyViewProvider.getStickViewType());
+        if (mAdapter == null) {
+            Log.e(TAG, "");
+            return;
+        }
+        mViewHolder = mAdapter.onCreateViewHolder(recyclerView, mAdapter.getItemViewType(childAdapterPosition));
         mStickyItemView = mViewHolder.itemView;
     }
 
@@ -231,7 +240,6 @@ public class StickyItemDecoration extends RecyclerView.ItemDecoration {
      */
     private void measureLayoutStickyItemView(int parentWidth) {
         if (mStickyItemView == null || !mStickyItemView.isLayoutRequested()) return;
-
         int widthSpec = View.MeasureSpec.makeMeasureSpec(parentWidth, View.MeasureSpec.EXACTLY);
         int heightSpec;
 
@@ -260,25 +268,4 @@ public class StickyItemDecoration extends RecyclerView.ItemDecoration {
         canvas.restoreToCount(saveCount);
     }
 
-    /**
-     * 获取吸附View相关的信息
-     */
-
-    public interface StickyViewProvider {
-
-        /**
-         * 是否是吸附view
-         *
-         * @param view View
-         * @return true or false
-         */
-        boolean isStickyView(View view);
-
-        /**
-         * 得到吸附view的itemType
-         *
-         * @return Type
-         */
-        int getStickViewType();
-    }
 }

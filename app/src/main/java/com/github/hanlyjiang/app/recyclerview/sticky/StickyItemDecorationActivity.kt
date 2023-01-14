@@ -2,7 +2,6 @@ package com.github.hanlyjiang.app.recyclerview.sticky
 
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -13,7 +12,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.github.hanlyjiang.app.BR
 import com.github.hanlyjiang.app.R
 import com.github.hanlyjiang.app.databinding.ActivityStickyItemDecorationBinding
-import com.github.hanlyjiang.app.recyclerview.sticky.impl1.StickyItemDecoration
 
 /**
  * Test recycler item decoration
@@ -33,26 +31,12 @@ class StickyItemDecorationActivity : AppCompatActivity() {
         binding.recyclerView.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = SectionAdapter(makeTestData())
-//            addItemDecoration(SectionItemDecoration(object : GroupListener {
-//                override fun isGroup(adapterPosition: Int): Boolean {
-//                    return (adapter as SectionAdapter).getItemViewType(adapterPosition) == SectionAdapter.ViewType_Group
-//                }
-//
-//                override fun setContent(contentView: ViewGroup?, position: Int) {
-//
-//                }
-//            }))
-            addItemDecoration(StickyItemDecoration(object :
-                StickyItemDecoration.StickyViewProvider {
-                override fun isStickyView(view: View): Boolean {
-                    val isSticky = view.getTag(R.id.sticky_view_tag) ?: return false
-                    return if (isSticky is Boolean) isSticky else false
-                }
-
-                override fun getStickViewType(): Int {
-                    return SectionAdapter.ViewType_Group
-                }
-            }))
+            addItemDecoration(SectionItemDecoration { _, viewPosition ->
+//            addItemDecoration(StickyItemDecoration { _, viewPosition ->
+                (adapter as SectionAdapter).getItemViewType(
+                    viewPosition
+                ) == SectionAdapter.ViewType_Group
+            })
         }
     }
 
