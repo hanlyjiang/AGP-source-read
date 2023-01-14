@@ -69,6 +69,9 @@ dependencies {
 //    annotationProcessor "androidx.lifecycle:lifecycle-compiler:$lifecycle_version"
     // alternately - if using Java8, use the following instead of lifecycle-compiler
     implementation "androidx.lifecycle:lifecycle-common-java8:$lifecycle_version"
+
+    // 携程支持
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.1'
 }
 
 logger.lifecycle("hasAndroidPlugin: ${pluginManager.hasPlugin('com.android.base')}")
