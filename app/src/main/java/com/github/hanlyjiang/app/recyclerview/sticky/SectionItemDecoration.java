@@ -5,9 +5,14 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.Log;
 import android.view.View;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
 import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * SectionItemDecoration
@@ -29,36 +34,51 @@ public class SectionItemDecoration extends RecyclerView.ItemDecoration {
 
         private int mDrawTransition = 0;
 
+        private final List<TopSecInfo> topSecInfoList = new ArrayList<>(2);
+
+
         public int getCurrentIndex() {
-            return currentTopSec.index;
+            if (topSecInfoList.isEmpty()) {
+                return RecyclerView.NO_POSITION;
+            }
+            return topSecInfoList.get(topSecInfoList.size() - 1).index;
         }
 
-        /**
-         * 当前正在绘制的TOP
-         */
-        private final TopSecInfo currentTopSec = new TopSecInfo();
-        /**
-         * 上一个TOP
-         */
-        private final TopSecInfo prvTopSec = new TopSecInfo();
-
         public void saveCurrentStickyView(View currentChild, int childAdapterPosition) {
+            if (!topSecInfoList.isEmpty() && topSecInfoList.get(topSecInfoList.size() - 1).index == childAdapterPosition) {
+                return;
+            }
             boolean drawingCacheEnabled = currentChild.isDrawingCacheEnabled();
             if (!drawingCacheEnabled) {
                 currentChild.setDrawingCacheEnabled(true);
             }
-
-            currentTopSec.bitmap = currentChild.getDrawingCache().copy(Bitmap.Config.ARGB_8888, true);
-            currentTopSec.index = childAdapterPosition;
-            recordCurrentSecTopToPrv();
+            TopSecInfo topSecInfo = new TopSecInfo();
+            topSecInfo.bitmap = currentChild.getDrawingCache().copy(Bitmap.Config.ARGB_8888, true);
+            topSecInfo.index = childAdapterPosition;
+            pushRecord(topSecInfo);
 
             if (!drawingCacheEnabled) {
                 currentChild.setDrawingCacheEnabled(false);
             }
         }
 
+        private void pushRecord(TopSecInfo topSecInfo) {
+            if (topSecInfoList.size() > 0) {
+                TopSecInfo endItem = topSecInfoList.get(topSecInfoList.size() - 1);
+                if (endItem.index == topSecInfo.index) {
+                    endItem.bitmap = topSecInfo.bitmap;
+                    return;
+                }
+            }
+            topSecInfoList.add(topSecInfo);
+            Log.d(TAG, "pushRecord:" + topSecInfo + "\t; " + topSecInfoList);
+            if (topSecInfoList.size() == 3) {
+                topSecInfoList.remove(0);
+            }
+        }
+
         public void draw(Canvas c, Paint paint) {
-            Log.d(TAG, "drawTopSec: top = " + currentTopSec);
+            TopSecInfo currentTopSec = topSecInfoList.get(topSecInfoList.size() - 1);
             if (currentTopSec.bitmap != null) {
                 c.translate(0, mDrawTransition);
                 c.drawBitmap(currentTopSec.bitmap, 0, 0, paint);
@@ -76,22 +96,16 @@ public class SectionItemDecoration extends RecyclerView.ItemDecoration {
             @NotNull
             @Override
             public String toString() {
-                return "TopSecInfo{" + " index = " + index + ", bitmap = " + bitmap + '}';
+                return "TopSecInfo{" + " index = " + index + "}";
             }
         }
 
-        private void restoreTopSecToPrv() {
-            Log.d(TAG, "restoreTopSecToPrv: before = " + currentTopSec);
-            currentTopSec.bitmap = prvTopSec.bitmap;
-            currentTopSec.index = prvTopSec.index;
-            Log.d(TAG, "restoreTopSecToPrv: after = " + currentTopSec);
-        }
-
-        private void recordCurrentSecTopToPrv() {
-            Log.d(TAG, "recordCurrentSecTopToPrv: before = " + prvTopSec);
-            prvTopSec.bitmap = currentTopSec.bitmap;
-            prvTopSec.index = currentTopSec.index;
-            Log.d(TAG, "recordCurrentSecTopToPrv: after = " + prvTopSec);
+        private void restoreTopSecToPrv(int targetPosition) {
+            if (topSecInfoList.size() == 2 && topSecInfoList.get(1).index == targetPosition) {
+                Log.d(TAG, "do real restore before: " + topSecInfoList);
+                topSecInfoList.add(0, topSecInfoList.remove(1));
+                Log.d(TAG, "do real restore after: " + topSecInfoList);
+            }
         }
     }
 
@@ -135,29 +149,38 @@ public class SectionItemDecoration extends RecyclerView.ItemDecoration {
                 int currentChildTop = currentChild.getTop();
                 int stickyViewHeight = currentChild.getHeight();
 
-                boolean isCurrentItemShouldBeTop = currentChildTop <= stickyViewHeight >> 1;
-                boolean isCurrentItemIsUsing = mStickyViewCache.getCurrentIndex() == childAdapterPosition;
-
-                // 交替区域，设置平移效果
-                if (currentChildTop > 0 && currentChildTop <= stickyViewHeight) {
-                    // 赋予 transition
-                    mStickyViewCache.updateTransition(currentChildTop - stickyViewHeight);
-                } else {
-                    mStickyViewCache.updateTransition(0);
-                }
-
-                if (isCurrentItemShouldBeTop && !isCurrentItemIsUsing) {
-                    Log.d(TAG, "top <= currentChild.getHeight()： childAdapterPosition: " + childAdapterPosition);
+                // 只有两种情况：
+                // 1. 使用当前;
+                // 2. 使用上一个; (上一个是相对逻辑含义来的）
+                if (currentChildTop <= 0) {
+                    // 当前遍历的Item需要被选中为当前的StickyView
                     mStickyViewCache.saveCurrentStickyView(currentChild, childAdapterPosition);
+                    mStickyViewCache.updateTransition(0);
+                } else if (currentChildTop <= stickyViewHeight) {
+                    // 设置交接处的Transition
+                    updateTransitionIfHave(currentChildTop, stickyViewHeight);
+                    mStickyViewCache.restoreTopSecToPrv(childAdapterPosition);
                 } else {
-                    // 没有显示完全的情况，取上一个的
-                    mStickyViewCache.restoreTopSecToPrv();
+                    mStickyViewCache.restoreTopSecToPrv(childAdapterPosition);
                 }
-                if (isCurrentItemIsUsing) {
-                    Log.d(TAG, "currentTopPosition == childAdapterPosition: " + childAdapterPosition);
-                    break;
-                }
+                break;
             }
+        }
+    }
+
+    /**
+     * 设置交接处的Transition
+     *
+     * @param currentChildTop  childTop
+     * @param stickyViewHeight View Height
+     */
+    private void updateTransitionIfHave(int currentChildTop, int stickyViewHeight) {
+        // 交替区域，设置平移效果
+        if (currentChildTop > 0 && currentChildTop <= stickyViewHeight) {
+            // 赋予 transition
+            mStickyViewCache.updateTransition(currentChildTop - stickyViewHeight);
+        } else {
+            mStickyViewCache.updateTransition(0);
         }
     }
 
