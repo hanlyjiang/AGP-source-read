@@ -1,18 +1,18 @@
 package com.github.hanlyjiang.app.recyclerview.sticky;
 
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.Log;
 import android.view.View;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
-
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+
+
 
 /**
  * SectionItemDecoration
@@ -32,92 +32,83 @@ public class SectionItemDecoration extends RecyclerView.ItemDecoration {
      */
     private static class StickyViewCache {
 
+        private RecyclerView.Adapter mAdapter;
+        private RecyclerView mRecyclerView;
+        private RecyclerView.ViewHolder mViewHolder;
+
+        private int mWidthMeasure, mHeightMeasure;
+
         private int mDrawTransition = 0;
+        /**
+         * 在 Adapter 中的位置
+         */
+        private int targetStickyViewIndex = RecyclerView.NO_POSITION;
 
-        private final List<TopSecInfo> topSecInfoList = new ArrayList<>(2);
+        private final List<Integer> topSecInfoList = new ArrayList<>(3);
 
-
-        public int getCurrentIndex() {
-            if (topSecInfoList.isEmpty()) {
-                return RecyclerView.NO_POSITION;
+        /**
+         * 保存StickyView index at adapter
+         *
+         * @param recyclerView         RecyclerView
+         * @param currentChild         View
+         * @param childAdapterPosition childAdapterPosition
+         */
+        public void saveCurrentStickyView(RecyclerView recyclerView, View currentChild, int childAdapterPosition) {
+            setAdapter(recyclerView);
+            targetStickyViewIndex = childAdapterPosition;
+            mWidthMeasure = currentChild.getWidth();
+            mHeightMeasure = currentChild.getHeight();
+            if (!topSecInfoList.contains(childAdapterPosition)) {
+                topSecInfoList.add(childAdapterPosition);
+                createViewHolder();
             }
-            return topSecInfoList.get(topSecInfoList.size() - 1).index;
         }
 
-        public void saveCurrentStickyView(View currentChild, int childAdapterPosition) {
-            if (!topSecInfoList.isEmpty() && topSecInfoList.get(topSecInfoList.size() - 1).index == childAdapterPosition) {
+        private void createViewHolder() {
+            if (targetStickyViewIndex == RecyclerView.NO_POSITION || mAdapter == null || mRecyclerView == null) {
+                Log.d(TAG, "createViewHolder return");
                 return;
             }
-            boolean drawingCacheEnabled = currentChild.isDrawingCacheEnabled();
-            if (!drawingCacheEnabled) {
-                currentChild.setDrawingCacheEnabled(true);
-            }
-            TopSecInfo topSecInfo = new TopSecInfo();
-            topSecInfo.bitmap = currentChild.getDrawingCache().copy(Bitmap.Config.ARGB_8888, true);
-            topSecInfo.index = childAdapterPosition;
-            pushRecord(topSecInfo);
-
-            if (!drawingCacheEnabled) {
-                currentChild.setDrawingCacheEnabled(false);
-            }
+            mViewHolder = mAdapter.onCreateViewHolder(mRecyclerView, mAdapter.getItemViewType(targetStickyViewIndex));
+            mAdapter.onBindViewHolder(mViewHolder, targetStickyViewIndex);
+            mViewHolder.itemView.measure(
+                    View.MeasureSpec.makeMeasureSpec(mWidthMeasure, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(mHeightMeasure, View.MeasureSpec.EXACTLY)
+            );
+            mViewHolder.itemView.layout(0, 0, mViewHolder.itemView.getMeasuredWidth(), mViewHolder.itemView.getMeasuredHeight());
         }
 
-        private void pushRecord(TopSecInfo topSecInfo) {
-            if (topSecInfoList.size() > 0) {
-                TopSecInfo endItem = topSecInfoList.get(topSecInfoList.size() - 1);
-                if (endItem.index == topSecInfo.index) {
-                    endItem.bitmap = topSecInfo.bitmap;
-                    return;
-                }
+        public void draw(@NonNull Canvas c, @Nullable Paint paint) {
+            if (mViewHolder == null) {
+                Log.d(TAG, "mViewHolder is null");
+                return;
             }
-            topSecInfoList.add(topSecInfo);
-            Log.d(TAG, "pushRecord:" + topSecInfo + "\t; " + topSecInfoList);
-            if (topSecInfoList.size() == 3) {
-                topSecInfoList.remove(0);
-            }
-        }
-
-        public void draw(Canvas c, Paint paint) {
-            TopSecInfo currentTopSec = topSecInfoList.get(topSecInfoList.size() - 1);
-            if (currentTopSec.bitmap != null) {
-                c.translate(0, mDrawTransition);
-                c.drawBitmap(currentTopSec.bitmap, 0, 0, paint);
-            }
+            c.translate(0, mDrawTransition);
+            mViewHolder.itemView.draw(c);
         }
 
         public void updateTransition(int i) {
             mDrawTransition = i;
         }
 
-        private static class TopSecInfo {
-            public int index = -1;
-            public Bitmap bitmap;
-
-            @NotNull
-            @Override
-            public String toString() {
-                return "TopSecInfo{" + " index = " + index + "}";
-            }
+        protected StickyViewCache setAdapter(RecyclerView recyclerView) {
+            this.mRecyclerView = recyclerView;
+            this.mAdapter = recyclerView.getAdapter();
+            return this;
         }
 
         private void restoreTopSecToPrv(int targetPosition) {
-            if (topSecInfoList.size() == 2 && topSecInfoList.get(1).index == targetPosition) {
-                Log.d(TAG, "do real restore before: " + topSecInfoList);
-                topSecInfoList.add(0, topSecInfoList.remove(1));
-                Log.d(TAG, "do real restore after: " + topSecInfoList);
+            int i = topSecInfoList.indexOf(targetPosition);
+            if ((i - 1) >= 0) {
+                targetStickyViewIndex = topSecInfoList.get(i - 1);
+                createViewHolder();
             }
         }
     }
 
 
-    Paint bitmapPaint;
-
     public SectionItemDecoration(StickyViewTester mStickyViewTester) {
         this.mStickyViewTester = mStickyViewTester;
-        bitmapPaint = new Paint();
-//        testPaint.setColor(0xFF000000);
-        // 透明度设置为 255 才能绘制出完全不透明的Bitmap
-        bitmapPaint.setAlpha(255);
     }
 
     @Override
@@ -154,13 +145,11 @@ public class SectionItemDecoration extends RecyclerView.ItemDecoration {
                 // 2. 使用上一个; (上一个是相对逻辑含义来的）
                 if (currentChildTop <= 0) {
                     // 当前遍历的Item需要被选中为当前的StickyView
-                    mStickyViewCache.saveCurrentStickyView(currentChild, childAdapterPosition);
+                    mStickyViewCache.saveCurrentStickyView(parent, currentChild, childAdapterPosition);
                     mStickyViewCache.updateTransition(0);
-                } else if (currentChildTop <= stickyViewHeight) {
+                } else  {
                     // 设置交接处的Transition
                     updateTransitionIfHave(currentChildTop, stickyViewHeight);
-                    mStickyViewCache.restoreTopSecToPrv(childAdapterPosition);
-                } else {
                     mStickyViewCache.restoreTopSecToPrv(childAdapterPosition);
                 }
                 break;
@@ -191,8 +180,7 @@ public class SectionItemDecoration extends RecyclerView.ItemDecoration {
      * @param c      Canvas
      */
     protected void drawStickyView(RecyclerView parent, @NonNull Canvas c) {
-        mStickyViewCache.draw(c, bitmapPaint);
+        mStickyViewCache.draw(c, null);
     }
-
 
 }

@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.github.hanlyjiang.app.BR
 import com.github.hanlyjiang.app.R
 import com.github.hanlyjiang.app.databinding.ActivityStickyItemDecorationBinding
+import com.github.hanlyjiang.app.recyclerview.sticky.impl1.StickyItemDecoration
 
 /**
  * Test recycler item decoration
@@ -31,8 +32,8 @@ class StickyItemDecorationActivity : AppCompatActivity() {
         binding.recyclerView.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = SectionAdapter(makeTestData())
-            addItemDecoration(SectionItemDecoration { _, viewPosition ->
-//            addItemDecoration(StickyItemDecoration { _, viewPosition ->
+//            addItemDecoration(SectionItemDecoration { _, viewPosition ->
+            addItemDecoration(StickyItemDecoration { _, viewPosition ->
                 (adapter as SectionAdapter).getItemViewType(
                     viewPosition
                 ) == SectionAdapter.ViewType_Group
@@ -52,12 +53,12 @@ class StickyItemDecorationActivity : AppCompatActivity() {
 
 data class DataItem(val type: Int, val value: String)
 
-class SectionViewHolder<out T : ViewDataBinding>(private val itemViewBinding: T) :
+class SectionViewHolder<out T : ViewDataBinding>(protected val itemViewBinding: T) :
     RecyclerView.ViewHolder(itemViewBinding.root) {
 
     fun bind(data: DataItem) {
         itemViewBinding.setVariable(BR.data, data)
-        itemViewBinding.root.findViewById<TextView>(R.id.text).text = data.value
+        itemViewBinding.executePendingBindings()
     }
 
 }
@@ -85,9 +86,6 @@ class SectionAdapter(private val dataItem: List<DataItem>) :
 
     override fun onBindViewHolder(holder: SectionViewHolder<ViewDataBinding>, position: Int) {
         holder.bind(dataItem[position])
-        // TODO: 无法通过DataBinding绑定数据
-        val itemViewType = getItemViewType(position)
-        holder.itemView.setTag(R.id.sticky_view_tag, itemViewType == ViewType_Group)
     }
 
     override fun getItemViewType(position: Int): Int {
