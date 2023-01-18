@@ -32,8 +32,8 @@ class StickyItemDecorationActivity : AppCompatActivity() {
         binding.recyclerView.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = SectionAdapter(makeTestData())
-//            addItemDecoration(SectionItemDecoration { _, viewPosition ->
-            addItemDecoration(StickyItemDecoration { _, viewPosition ->
+            addItemDecoration(SectionItemDecoration { _, viewPosition ->
+//            addItemDecoration(StickyItemDecoration { _, viewPosition ->
                 (adapter as SectionAdapter).getItemViewType(
                     viewPosition
                 ) == SectionAdapter.ViewType_Group

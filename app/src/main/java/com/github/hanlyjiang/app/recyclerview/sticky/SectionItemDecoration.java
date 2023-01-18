@@ -1,21 +1,20 @@
 package com.github.hanlyjiang.app.recyclerview.sticky;
 
 import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.util.Log;
 import android.view.View;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
 
 
-
 /**
- * SectionItemDecoration
+ * 支持顶部吸附的ItemDecoration
+ * <BR/>
+ * 限制：RecyclerView 首次显示时，第一个需要粘性显示的Item必须在屏幕中。
  *
  * @author hhjiang 2023/1/13 14:03
  * @version 1.0
@@ -28,98 +27,30 @@ public class SectionItemDecoration extends RecyclerView.ItemDecoration {
     private final StickyViewCache mStickyViewCache = new StickyViewCache();
 
     /**
-     * 缓存工具类
+     * Constructor
+     *
+     * @param stickyViewTester StickyViewTester
      */
-    private static class StickyViewCache {
-
-        private RecyclerView.Adapter mAdapter;
-        private RecyclerView mRecyclerView;
-        private RecyclerView.ViewHolder mViewHolder;
-
-        private int mWidthMeasure, mHeightMeasure;
-
-        private int mDrawTransition = 0;
-        /**
-         * 在 Adapter 中的位置
-         */
-        private int targetStickyViewIndex = RecyclerView.NO_POSITION;
-
-        private final List<Integer> topSecInfoList = new ArrayList<>(3);
-
-        /**
-         * 保存StickyView index at adapter
-         *
-         * @param recyclerView         RecyclerView
-         * @param currentChild         View
-         * @param childAdapterPosition childAdapterPosition
-         */
-        public void saveCurrentStickyView(RecyclerView recyclerView, View currentChild, int childAdapterPosition) {
-            setAdapter(recyclerView);
-            targetStickyViewIndex = childAdapterPosition;
-            mWidthMeasure = currentChild.getWidth();
-            mHeightMeasure = currentChild.getHeight();
-            if (!topSecInfoList.contains(childAdapterPosition)) {
-                topSecInfoList.add(childAdapterPosition);
-                createViewHolder();
-            }
-        }
-
-        private void createViewHolder() {
-            if (targetStickyViewIndex == RecyclerView.NO_POSITION || mAdapter == null || mRecyclerView == null) {
-                Log.d(TAG, "createViewHolder return");
-                return;
-            }
-            mViewHolder = mAdapter.onCreateViewHolder(mRecyclerView, mAdapter.getItemViewType(targetStickyViewIndex));
-            mAdapter.onBindViewHolder(mViewHolder, targetStickyViewIndex);
-            mViewHolder.itemView.measure(
-                    View.MeasureSpec.makeMeasureSpec(mWidthMeasure, View.MeasureSpec.EXACTLY),
-                    View.MeasureSpec.makeMeasureSpec(mHeightMeasure, View.MeasureSpec.EXACTLY)
-            );
-            mViewHolder.itemView.layout(0, 0, mViewHolder.itemView.getMeasuredWidth(), mViewHolder.itemView.getMeasuredHeight());
-        }
-
-        public void draw(@NonNull Canvas c, @Nullable Paint paint) {
-            if (mViewHolder == null) {
-                Log.d(TAG, "mViewHolder is null");
-                return;
-            }
-            c.translate(0, mDrawTransition);
-            mViewHolder.itemView.draw(c);
-        }
-
-        public void updateTransition(int i) {
-            mDrawTransition = i;
-        }
-
-        protected StickyViewCache setAdapter(RecyclerView recyclerView) {
-            this.mRecyclerView = recyclerView;
-            this.mAdapter = recyclerView.getAdapter();
-            return this;
-        }
-
-        private void restoreTopSecToPrv(int targetPosition) {
-            int i = topSecInfoList.indexOf(targetPosition);
-            if ((i - 1) >= 0) {
-                targetStickyViewIndex = topSecInfoList.get(i - 1);
-                createViewHolder();
-            }
-        }
-    }
-
-
-    public SectionItemDecoration(StickyViewTester mStickyViewTester) {
-        this.mStickyViewTester = mStickyViewTester;
+    public SectionItemDecoration(StickyViewTester stickyViewTester) {
+        this.mStickyViewTester = stickyViewTester;
     }
 
     @Override
     public void onDrawOver(@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
         super.onDrawOver(c, parent, state);
-//        parent.getChildCount() 获取的是当前可用的View（RecyclerView中只有可见的几个）
-        // 1. 查找 StickyView
+        // 1. 查找并设置 StickyView
         findStickyView(parent);
-
         // 2. 绘制 StickyView
         drawStickyView(parent, c);
+    }
+
+    /**
+     * 获取当前正在显示的粘性View对应的 AdapterPosition
+     *
+     * @return AdapterPosition
+     */
+    public int getCurrentStickyViewAdapterPosition() {
+        return mStickyViewCache.mCurrentStickyViewAdapterPosition;
     }
 
     /**
@@ -128,6 +59,7 @@ public class SectionItemDecoration extends RecyclerView.ItemDecoration {
      * @param parent RecyclerView
      */
     protected void findStickyView(RecyclerView parent) {
+        // parent.getChildCount() 获取的是当前可用的View（RecyclerView中只有可见的几个）
         for (int i = 0; i < parent.getChildCount(); i++) {
             // 遍历，获取需要黏住的 View
             View currentChild = parent.getChildAt(i);
@@ -139,19 +71,16 @@ public class SectionItemDecoration extends RecyclerView.ItemDecoration {
             if (mStickyViewTester.isStickyView(currentChild, childAdapterPosition)) {
                 int currentChildTop = currentChild.getTop();
                 int stickyViewHeight = currentChild.getHeight();
-
                 // 只有两种情况：
                 // 1. 使用当前;
                 // 2. 使用上一个; (上一个是相对逻辑含义来的）
                 if (currentChildTop <= 0) {
-                    // 当前遍历的Item需要被选中为当前的StickyView
-                    mStickyViewCache.saveCurrentStickyView(parent, currentChild, childAdapterPosition);
-                    mStickyViewCache.updateTransition(0);
-                } else  {
-                    // 设置交接处的Transition
-                    updateTransitionIfHave(currentChildTop, stickyViewHeight);
-                    mStickyViewCache.restoreTopSecToPrv(childAdapterPosition);
+                    mStickyViewCache.setUseCurrent(parent, currentChild, childAdapterPosition);
+                } else {
+                    mStickyViewCache.setUsePrevious(childAdapterPosition);
                 }
+                // 交替区域，设置平移效果
+                mStickyViewCache.updateTransition(calculateTransition(currentChildTop, stickyViewHeight));
                 break;
             }
         }
@@ -163,13 +92,11 @@ public class SectionItemDecoration extends RecyclerView.ItemDecoration {
      * @param currentChildTop  childTop
      * @param stickyViewHeight View Height
      */
-    private void updateTransitionIfHave(int currentChildTop, int stickyViewHeight) {
-        // 交替区域，设置平移效果
+    protected int calculateTransition(int currentChildTop, int stickyViewHeight) {
         if (currentChildTop > 0 && currentChildTop <= stickyViewHeight) {
-            // 赋予 transition
-            mStickyViewCache.updateTransition(currentChildTop - stickyViewHeight);
+            return currentChildTop - stickyViewHeight;
         } else {
-            mStickyViewCache.updateTransition(0);
+            return 0;
         }
     }
 
@@ -180,7 +107,113 @@ public class SectionItemDecoration extends RecyclerView.ItemDecoration {
      * @param c      Canvas
      */
     protected void drawStickyView(RecyclerView parent, @NonNull Canvas c) {
-        mStickyViewCache.draw(c, null);
+        mStickyViewCache.draw(c);
+    }
+
+    /**
+     * 缓存工具类
+     */
+    protected static class StickyViewCache {
+
+        private RecyclerView.Adapter mAdapter;
+        private RecyclerView mRecyclerView;
+        private RecyclerView.ViewHolder mViewHolder;
+
+        private int mWidthMeasure, mHeightMeasure;
+
+        private int mDrawTransition = 0;
+        /**
+         * 当前使用的StickyView在 Adapter 中的位置
+         */
+        private int mCurrentStickyViewAdapterPosition = RecyclerView.NO_POSITION;
+
+        private final List<Integer> mStickyViewAdapterPositionList = new ArrayList<>(3);
+
+        /**
+         * 保存StickyView index at adapter
+         *
+         * @param recyclerView         RecyclerView
+         * @param currentChild         View
+         * @param childAdapterPosition childAdapterPosition
+         */
+        public void setUseCurrent(RecyclerView recyclerView, View currentChild, int childAdapterPosition) {
+            setAdapter(recyclerView);
+            mWidthMeasure = currentChild.getWidth();
+            mHeightMeasure = currentChild.getHeight();
+            if (!mStickyViewAdapterPositionList.contains(childAdapterPosition)) {
+                mStickyViewAdapterPositionList.add(childAdapterPosition);
+                createOrUpdateViewHolder(childAdapterPosition);
+                Log.d(TAG, "saveCurrentStickyView current=" + mCurrentStickyViewAdapterPosition + ";list=" + mStickyViewAdapterPositionList);
+            } else {
+                createOrUpdateViewHolder(childAdapterPosition);
+            }
+        }
+
+        /**
+         * 绘制
+         *
+         * @param c Canvas
+         */
+        public void draw(@NonNull Canvas c) {
+            if (mViewHolder == null) {
+                Log.w(TAG, "draw mViewHolder is null");
+                return;
+            }
+            c.translate(0, mDrawTransition);
+            mViewHolder.itemView.draw(c);
+        }
+
+        /**
+         * 更新上下偏移
+         *
+         * @param transitionY transition Y
+         */
+        public void updateTransition(int transitionY) {
+            mDrawTransition = transitionY;
+        }
+
+        public void setUsePrevious(int targetPosition) {
+            int i = mStickyViewAdapterPositionList.indexOf(targetPosition);
+            if ((i - 1) >= 0) {
+                int newPos = mStickyViewAdapterPositionList.get(i - 1);
+                if (mCurrentStickyViewAdapterPosition != newPos) {
+                    createOrUpdateViewHolder(newPos);
+                    Log.d(TAG, "restoreTopSecToPrv current=" + mCurrentStickyViewAdapterPosition + ";list=" + mStickyViewAdapterPositionList);
+                }
+            }
+        }
+
+        private void createOrUpdateViewHolder(int childAdapterPosition) {
+            int oldAdapterPosition = mCurrentStickyViewAdapterPosition;
+            if (oldAdapterPosition == childAdapterPosition) {
+                Log.v(TAG, "createViewHolder targetStickyViewIndex == childAdapterPosition return");
+                return;
+            }
+            mCurrentStickyViewAdapterPosition = childAdapterPosition;
+            if (mCurrentStickyViewAdapterPosition == RecyclerView.NO_POSITION || mAdapter == null || mRecyclerView == null) {
+                Log.d(TAG, "createViewHolder return");
+                return;
+            }
+            int newItemViewType = mAdapter.getItemViewType(mCurrentStickyViewAdapterPosition);
+            if (mViewHolder == null ||
+                    (oldAdapterPosition != RecyclerView.NO_POSITION && newItemViewType != mAdapter.getItemViewType(oldAdapterPosition))
+            ) {
+                mViewHolder = mAdapter.onCreateViewHolder(mRecyclerView, newItemViewType);
+            }
+            // Execute data binding
+            mAdapter.onBindViewHolder(mViewHolder, mCurrentStickyViewAdapterPosition);
+            mViewHolder.itemView.measure(
+                    View.MeasureSpec.makeMeasureSpec(mWidthMeasure, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(mHeightMeasure, View.MeasureSpec.EXACTLY)
+            );
+            mViewHolder.itemView.layout(0, 0, mViewHolder.itemView.getMeasuredWidth(), mViewHolder.itemView.getMeasuredHeight());
+        }
+
+        private void setAdapter(RecyclerView recyclerView) {
+            this.mRecyclerView = recyclerView;
+            this.mAdapter = recyclerView.getAdapter();
+            // TODO: 从 Adapter 中获取 StickyView 列表
+        }
     }
 
 }
