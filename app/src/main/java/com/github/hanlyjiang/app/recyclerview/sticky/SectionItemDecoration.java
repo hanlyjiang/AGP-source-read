@@ -212,7 +212,7 @@ public class SectionItemDecoration extends RecyclerView.ItemDecoration {
         private void setAdapter(RecyclerView recyclerView) {
             this.mRecyclerView = recyclerView;
             this.mAdapter = recyclerView.getAdapter();
-            // TODO: 从 Adapter 中获取 StickyView 列表
+            // TODO: 从 Adapter 中获取 StickyView 列表; 注册 Observable
         }
     }
 
